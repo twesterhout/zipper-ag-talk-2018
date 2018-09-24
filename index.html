@@ -99,10 +99,10 @@
                      | Fork lhs.locmin = min @left.locmin @right.locmin
           </code></pre>
           <pre><code class="haskell" data-trim>
-						locmin :: AGZipper Tree -> Int
-						locmin z@(Zipper hole) = case whereami hole of
-							C_Leaf -> let (Leaf x) = hole in x
-							C_Fork -> min (locmin (unsafeChild 0 z))
+            locmin :: AGZipper Tree -> Int
+            locmin z@(Zipper hole) = case whereami hole of
+              C_Leaf -> let (Leaf x) = hole in x
+              C_Fork -> min (locmin (unsafeChild 0 z))
                             (locmin (unsafeChild 1 z))
           </code></pre>
         </section>
@@ -138,7 +138,7 @@
           <pre><code class="haskell" data-trim>
             replace :: State (AGZipper Tree) Tree
             replace = memoize @"replace" $ get >>= \(Zipper hole) ->
-              case whereami hole of	
+              case whereami hole of
                 C_Leaf -> Leaf <$> globmin
                 C_Fork -> Fork <$> unsafeAt (Child 0) replace
                                <*> unsafeAt (Child 1) replace
@@ -146,7 +146,7 @@
         </section>
 
         <section>
-          <h3>Simply put,</h3>
+          <h3>Simply put</h3>
           
           <ul>
             <li class="fragment">Generic zippers for encoding of traversals</li>
