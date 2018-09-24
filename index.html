@@ -29,11 +29,10 @@
           12 mins total:
 
             * (1 min. ) Who am I?
+            * (1 min. ) Motivation
             * (2 mins.) Repmin
-            * (2 mins.) Attribute Grammars
-              * Problem statement
-              * As a circular program
-              * As an AG
+            * (1 min. ) Attribute Grammars
+            * (1 min. ) Attributes
             * (2 mins.) Functional zippers
             * (4 mins.) Combining the two: repmin code
             * (1 mins.) Take-home message
@@ -92,6 +91,48 @@
         </section>
 
         <section>
+          <section>
+            <h3>Functional Zippers</h3>
+          </section>
+         
+          <section>
+            <pre><code class="haskell" data-trim>
+              data Zipper  = Zipper { _hole :: Tree, _cxt :: !Context }
+              data Context = Top
+                           | Left !Context Tree
+                           | Right Tree !Context
+
+              left  :: Zipper -> Maybe Zipper
+              right :: Zipper -> Maybe Zipper
+              up    :: Zipper -> Maybe Zipper
+              down  :: Zipper -> Maybe Zipper
+              enter :: Tree   -> Zipper
+              leave :: Zipper -> Tree
+
+              lift :: (Tree -> Tree) -> Zipper -> Zipper
+            </code></pre>
+          </section>
+
+          <section>
+            <pre><code class="haskell" data-trim>
+              foo :: Tree -> Tree
+              foo x = print $ return . enter
+                >=> down
+                >=> left
+                >=> modify action1
+                >=> down
+                >=> down
+                >=> modify action2
+                >=> left
+                >=> modify action3
+                >=> up
+                >=> modify action4
+                >=> return . leave $ x
+            </code></pre>
+          </section>
+        </section>
+
+        <section>
           <h4>Computing the minimal value</h4>
           <pre><code style="background: #3f3f3f;" class="nohighlight" data-trim>
             SYN Tree [locmin : Int]
@@ -147,7 +188,6 @@
 
         <section>
           <h3>Simply put</h3>
-          
           <ul>
             <li class="fragment">Generic zippers for encoding of traversals</li>
             <li class="fragment">State monad for caching</li>
