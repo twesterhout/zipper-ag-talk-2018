@@ -1,0 +1,13 @@
+/*
+.reveal .slides > section {
+    // Force every slide to be full height so that footers work
+    height: 100%;
+}
+*/
+
+.reveal .footer {
+    text-align: center;
+    font-size: 80% !important;
+    display: table-footer-group;
+    width: 100%;
+}

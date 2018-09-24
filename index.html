@@ -1,0 +1,198 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>DMRG</title>
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/night.css">
+    <link rel="stylesheet" href="user.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <!--
+          12 mins total:
+
+            * (1 min. ) Who am I?
+            * (2 mins.) Repmin
+            * (2 mins.) Attribute Grammars
+              * Problem statement
+              * As a circular program
+              * As an AG
+            * (2 mins.) Functional zippers
+            * (4 mins.) Combining the two: repmin code
+            * (1 mins.) Take-home message
+        -->
+        <section style="height: 100%;">
+          <div style="height: 100%; display: table;">
+            <h2>Zipper-based Embedding of Attribute Grammars in Haskell</h2>
+            <p class="footer">
+              Tom Westerhout<br>
+              2018 Sep 24
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h3>Motivation</h3>
+          <h3 class="fragment">Multi-traversal problems</h3>
+          <p class="fragment">Example: Repmin</p>
+        </section>
+
+        <section>
+          <h3 class="fragment" data-fragment-index="2">Circular Programs</h3>
+          <blockquote>
+            Given a tree of integers, replace every integer with the minimum
+            integer in the tree, in one pass.
+          </blockquote>
+
+          <pre class="fragment" data-fragment-index="1"><code class="haskell" data-trim>
+            data Tree = Fork Tree Tree | Leaf !Int
+          </code></pre>
+          <pre class="fragment" data-fragment-index="2"><code class="haskell" data-trim>
+            repmin :: Tree -> Tree
+            repmin t = t'
+             where
+              (t', m') = go t m'
+              go (Leaf x    ) m = (Leaf m, x)
+              go (Fork xs ys) m = (Fork xs' ys', min mx my)
+               where
+                (xs', mx) = go xs m
+                (ys', my) = go ys m
+          </code></pre>
+        </section>
+
+        <section>
+          <h3>Attribute Grammars</h3>
+          <ul>
+            <li class="fragment">Computing the minimal value.</li>
+            <li class="fragment">Passing it down from the root to the leaves.</li>
+            <li class="fragment">Constructing the resulting tree.</li>
+          </ul>
+        </section>
+
+        <section data-background-color="#ffffff"
+                 data-background-image="assets/repmin.jpeg"
+                 data-background-size="500px">
+        </section>
+
+        <section>
+          <h4>Computing the minimal value</h4>
+          <pre><code style="background: #3f3f3f;" class="nohighlight" data-trim>
+            SYN Tree [locmin : Int]
+            SEM Tree | Leaf lhs.locmin = @value
+                     | Fork lhs.locmin = min @left.locmin @right.locmin
+          </code></pre>
+          <pre><code class="haskell" data-trim>
+						locmin :: AGZipper Tree -> Int
+						locmin z@(Zipper hole) = case whereami hole of
+							C_Leaf -> let (Leaf x) = hole in x
+							C_Fork -> min (locmin (unsafeChild 0 z))
+                            (locmin (unsafeChild 1 z))
+          </code></pre>
+        </section>
+
+        <section>
+          <h4>Passing it down</h4>
+          <pre><code style="background: #3f3f3f;" class="nohighlight" data-trim>
+            INH Tree [ globmin : Int ]
+            SEM Tree | Fork left.globmin  = @lhs.globmin
+                            right.globmin = @lhs.globmin
+
+            DATA Root | Root tree : Tree
+            SEM  Root | Root tree.globmin = @tree.locmin
+          </code></pre>
+          <pre><code class="haskell" data-trim>
+            globmin :: State (AGZipper Tree) Int
+            globmin = memoize @"globmin" $
+              isRoot >>= \case
+                True  -> gets locmin
+                False -> unsafeAt Parent globmin
+          </code></pre>
+        </section>
+
+        <section>
+          <h4>Constructing the result</h4>
+          <pre><code style="background: #3f3f3f;" class="nohighlight" data-trim>
+            SYN Tree [updated : Tree]
+            SEM Tree | Leaf lhs.replace = Leaf @lhs.globmin
+                     | Fork lhs.replace = Fork @left.replace
+                                               @right.replace
+          </code></pre>
+
+          <pre><code class="haskell" data-trim>
+            replace :: State (AGZipper Tree) Tree
+            replace = memoize @"replace" $ get >>= \(Zipper hole) ->
+              case whereami hole of	
+                C_Leaf -> Leaf <$> globmin
+                C_Fork -> Fork <$> unsafeAt (Child 0) replace
+                               <*> unsafeAt (Child 1) replace
+          </code></pre>
+        </section>
+
+        <section>
+          <h3>Simply put,</h3>
+          
+          <ul>
+            <li class="fragment">Generic zippers for encoding of traversals</li>
+            <li class="fragment">State monad for caching</li>
+            <li class="fragment">Modern Haskell for everything else</li>
+            <li class="fragment"><b>No</b> parsing etc.</li>
+            <li class="fragment"><b>No</b> fancy graph algorithms</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+
+    <script>
+      // More info about config & dependencies:
+      // - https://github.com/hakimel/reveal.js#configuration
+      // - https://github.com/hakimel/reveal.js#dependencies
+      Reveal.initialize({
+        controls: true,
+        controlsTutorial: false,
+        progress: false,
+        history: true,
+        center: true,
+        keyboard: true,
+        touch: false,
+        overview: true,
+        mouseWheel: false,
+        // width: 960,
+        // height: 720,
+        // theme: false, // hardcoded with CSS import in <head>
+        transition: 'none', // default/cube/page/concave/zoom/linear/fade/none
+        transitionSpeed: 'fast', // default/fast/slow
+        math: {
+          mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',
+          config:  'TeX-AMS_HTML-full'  // See http://docs.mathjax.org/en/latest/config-files.html
+        },
+        dependencies: [
+          { src: 'plugin/markdown/marked.js' },
+          { src: 'plugin/markdown/markdown.js' },
+          { src: 'plugin/notes/notes.js', async: true },
+          { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/math/math.js', async: true }
+        ]
+      });
+    </script>
+  </body>
+</html>
